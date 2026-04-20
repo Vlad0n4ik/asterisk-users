@@ -136,14 +136,17 @@ def añadir_extension_conf(ext_num, pjsip_id):
     seccion = f"[{CONTEXTO_DEFAULT}]"
 
     if seccion in contenido:
-        # Buscar fin de la línea donde está [from-internal] e insertar después
-        idx = contenido.index(seccion) + len(seccion)
-        # Avanzar hasta el final de esa línea
-        while idx < len(contenido) and contenido[idx] != "\n":
-            idx += 1
-        contenido = contenido[:idx] + "\n" + nuevas_lineas + contenido[idx:]
+        idx_inicio = contenido.index(seccion)
+        resto = contenido[idx_inicio + len(seccion):]
+        siguiente = re.search(r"\n\[", resto)
+        if siguiente:
+            idx_insertar = idx_inicio + len(seccion) + siguiente.start()
+        else:
+            idx_insertar = len(contenido)
+        if not contenido[:idx_insertar].endswith("\n"):
+            nuevas_lineas = "\n" + nuevas_lineas
+        contenido = contenido[:idx_insertar] + nuevas_lineas + contenido[idx_insertar:]
     else:
-        # El contexto no existe, añadirlo al final
         if not contenido.endswith("\n"):
             contenido += "\n"
         contenido += f"\n[{CONTEXTO_DEFAULT}]\n{nuevas_lineas}"
