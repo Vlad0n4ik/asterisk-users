@@ -136,10 +136,17 @@ def añadir_extension_conf(ext_num, pjsip_id):
     seccion = f"[{CONTEXTO_DEFAULT}]"
 
     if seccion in contenido:
-        pos = contenido.index(seccion) + len(seccion)
-        contenido = contenido[:pos] + "\n" + nuevas_lineas + contenido[pos:]
+        # Buscar fin de la línea donde está [from-internal] e insertar después
+        idx = contenido.index(seccion) + len(seccion)
+        # Avanzar hasta el final de esa línea
+        while idx < len(contenido) and contenido[idx] != "\n":
+            idx += 1
+        contenido = contenido[:idx] + "\n" + nuevas_lineas + contenido[idx:]
     else:
-        contenido += f"\n{seccion}\n{nuevas_lineas}"
+        # El contexto no existe, añadirlo al final
+        if not contenido.endswith("\n"):
+            contenido += "\n"
+        contenido += f"\n[{CONTEXTO_DEFAULT}]\n{nuevas_lineas}"
 
     guardar_conf(contenido)
     print(f"  [OK] Extensión {ext_num} añadida en extensions.conf.")
@@ -147,8 +154,9 @@ def añadir_extension_conf(ext_num, pjsip_id):
 
 def eliminar_extension_conf(ext_num):
     contenido = leer_conf()
-    patron = rf"exten\s*=>\s*{re.escape(ext_num)}\s*,.*\n?"
-    nuevo = re.sub(patron, "", contenido)
+    # re.MULTILINE para que .* no cruce líneas y capturar el \n al final
+    patron = rf"^exten\s*=>\s*{re.escape(ext_num)}\s*,.*\n"
+    nuevo = re.sub(patron, "", contenido, flags=re.MULTILINE)
 
     if nuevo == contenido:
         print(f"  [!] No se encontró la extensión {ext_num} en extensions.conf.")
